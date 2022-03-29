@@ -1,2 +1,17 @@
-# Ceneo-Scrapper
-scrapper
+# Book
+
+## Single opinion strcuture
+|Element|selector|Variable|
+|-------|--------|--------|
+|||
+|||
+|||
+|||
+|||
+|||
+|||
+|||
+|||
+|||
+|||
+|||
