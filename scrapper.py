@@ -1,70 +1,62 @@
 import json
+from turtle import pos
+from typing import Type
 import requests
 from bs4 import BeautifulSoup
 
-def extract_element(ancestor, selector, attribute=None):
-    try:
-        if attribute:
-            return ancestor.select(selector).pop(0)[attribute].strip()
-        else:
-            return ancestor.select(selector).pop(0).text.strip()
-    except IndexError: return None
+url = "https://www.ceneo.pl/90602549#tab=reviews"
 
-product_id = input("Give Product ID: ")
-url_pre = "https://www.ceneo.pl/"
-url_post = "/opinie-"
-page_no = 1
-all_reviews = []
 
-while(page_no):
-    url = url_pre+product_id+url_post+str(page_no)
-    response = requests.get(url, allow_redirects=False)
-    if response.status_code == requests.codes.ok: 
-        page_dom = BeautifulSoup(response.text, 'html.parser')
-        reviews = page_dom.select("div.js_product-review")
-        for review in reviews: 
-            review_id = review["data-entry-id"]
-            author = extract_element(review,"span.user-post__author-name")
-            recommendation = extract_element(review, "span.user-post__author-recomendation > em")
-            stars = extract_element(review, "span.user-post__score-count")
-            content = extract_element(review, "div.user-post__text")
-            publish_date = extract_element(review, "span.user-post__published > time:nth-child(1)", "datetime")
-            purchase_date = extract_element(review, "span.user-post__published > time:nth-child(2)", "datetime")
-            useful = extract_element(review, "span[id^=votes-yes]")
-            useless = extract_element(review, "span[id^=votes-no]")
-            
-            pros = review.select("div.review-feature__title--positives ~ div.review-feature__item")
-            pros = [item.text.strip() for item in pros]
-            pros = ", ".join(pros)
+all_opinions = []
+while (url):
+    response = requests.get(url)
+    page_dom = BeautifulSoup(response.text, "html.parser")
+    opinions = page_dom.select("div.js_product-review")
 
-            cons = review.select("div.review-feature__title--negatives ~ div.review-feature__item")
-            cons = [item.text.strip() for item in cons]
-            cons = ", ".join(cons)
+    for opinion in opinions:
+        opinion_id = opinion["data-entry-id"]
+        author = opinion.select_one("span.user-post__author-name").text.strip()
+        try:
+            rcmd = opinion.select_one(
+                "span.user-post__author-recomendation > em").text.strip()
+        except TypeError:
+            rcmd = None
+        score = opinion.select_one("span.user-post__score-count").text.strip()
+        content = opinion.select_one("div.user-post__text").text.strip()
+        try:
+            posted_on = opinion.select_one(
+            "span.user-post__published > time:nth-child(1)")["datetime"]
+        except TypeError:
+            posted_on = None
+        bought_on = opinion.select_one(
+            "span.user-post__published > time:nth-child(2)")["datetime"]
+        useful_for = opinion.select_one("button.vote-yes > span").text.strip()
+        useless_for = opinion.select_one("button.vote-no > span").text.strip()
+        pros = opinion.select(
+            "div.review-feature__title--positives ~ div.review-feature__item")
+        pros = [item.text.strip() for item in pros]
+        cons = opinion.select(
+            "div.review-feature__title--negatives ~ div.review-feature__item")
+        cons = [item.text.strip() for item in cons]
 
-            recommendation = True if recommendation == "Polecam" else False if recommendation == "Nie polecam" else None
-            stars = float(stars.split("/").pop(0).replace(",", "."))
-            content = content.replace("\n", " ").replace("  ", " ").strip()
-            publish_date = publish_date.split(" ").pop(0)
-            purchase_date = purchase_date.split(" ").pop(0)
-            useful = int(useful)
-            useless = int(useless)
+        single_opinion = {
+            "opinion_id": opinion_id,
+            "author": author,
+            "rcmd": rcmd,
+            "score": score,
+            "content": content,
+            "pros": pros,
+            "cons": cons,
+            "posted_on": posted_on,
+            "bought_on": bought_on,
+            "usefull": useful_for,
+            "useless": useless_for,
+        }
+        all_opinions.append(single_opinion)
+        try:
+            url = "https://www.ceneo.pl" + page_dom.select_one("a.pagination__next")["href"]
+        except TypeError:
+            url = None
 
-            single_review = {
-                "review_id": review_id,
-                "author": author,
-                "recommendation": recommendation,
-                "stars": stars,
-                "content": content,
-                "publish_date": publish_date, 
-                "purchase_date": purchase_date,
-                "useful": useful,
-                "useless": useless,
-                "pros": pros,
-                "cons": cons
-            }
-            all_reviews.append(single_review)
-        page_no += 1
-    else: page_no = None
-
-f = open("reviews/"+product_id+".json", "w", encoding="UTF-8")
-json.dump(all_reviews, f, indent=4, ensure_ascii=False)
+with open("opinions/45863470.json","w", encoding="UTF-8") as f:
+    json.dump(all_opinions, f, indent=4, ensure_ascii=False)
