@@ -27,4 +27,5 @@
     a)Definition of function for extracting single elements of page from HTML code
     b)Creation of dictionary that describes opinions with selectors for particular opinion's elements
     c)Using dictionary comprehension to eextract all opinion's elements on the basis of opinion's structure dictionary
-6)
+6)Adjustment of data types for different opinions elements
+7)Translation of certain opinions elements into Engish
